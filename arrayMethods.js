@@ -96,6 +96,9 @@ function renderProducts(productArray){
         <p class="product-description">${product.description}</p>
         <button class="add-to-cart">Add to Cart</button>
          `;
+         productCard.querySelector(".add-to-cart").addEventListener("click", () => {
+            addToCart(product);
+         })
          container.appendChild(productCard);
     })
 }
@@ -105,10 +108,43 @@ searchInput.addEventListener("input", function(e){
     e.preventDefault();
     const query = e.target.value.toLowerCase();
     const filteredProducts = allProducts.filter(product =>
-        product.title.toLowerCase().includes(query) ||
-        product.description.toLowerCase().includes(query)
+        product.title.toLowerCase().includes(query) 
     );
     renderProducts(filteredProducts);
 })
 
 fetchProducts();
+
+
+// Cart functionality
+let cart = [];
+function addToCart(product){
+    const existingProduct = cart.find(item => item.id ===product.id);
+    if(existingProduct){
+        existingProduct.quantity +=1;
+    } else {
+        cart.push({...product, quantity: 1});
+    }
+    renderCart();
+}
+
+function renderCart(){
+    const cartContainer = document.getElementById("cartContainer");
+    cartContainer.innerHTML = "<h3>Your Cart</h3>";
+    if(cart.length === 0){
+        cartContainer.innerHTML +="<p>Cart is empty.</p>";
+        return;
+    }
+
+    cart.forEach(item => {
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "cart-item";
+        itemDiv.innerHTML = `
+        <p><strong>${item.title}</strong> x ${item.quantity}</p>
+        <p>$${(item.price * item.quantity).toFixed(2)}</p>`;
+        cartContainer.appendChild(itemDiv);
+    });
+
+    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    cartContainer.innerHTML +=`<h4><strong>Total: $${total.toFixed(2)}</strong></p>`
+}
