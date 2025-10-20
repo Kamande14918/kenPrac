@@ -10,11 +10,18 @@
     <header class="header">
         <h1>Sabrina's Fashion Store</h1>
         <input type="text" id="searchInput" placeholder="Search products..." />
+        <div class="cart-actions" id="cart-actions">
+            <button id="toggle-cart" type="button"class="cart-button">
+                🛒 Cart (<span id="cart-count">0</span>)
+            </button>
+        </div>
         <div id="cartContainer" class="cart-box"></div>
         </header>
     <div id="productContainer" class="product-grid"></div>
+   
+    <div id="app"></div>
     <script src="./arrayMethods.js">
     </script>
-
+    <script src="./cart.js"></script>
 </body>
 </html>

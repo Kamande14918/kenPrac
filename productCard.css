@@ -50,3 +50,46 @@
 .add-to-cart:hover{
     background-color: #218838;
 }
+/* Cart styles */
+.cart-box{
+    background-color: #f4f4f4;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+.cart-item{
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+.quantity-controls{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+
+}
+.quantity-controls button{
+    padding: 4px 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    
+}
+/* Cart styles */
+.cart-box{
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 100%;
+    background-color: #fff;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+    padding: 20px;
+    overflow-y: auto;
+}
+.cart-icon{
+    font-size: 1.5rem;
+    cursor: pointer;
+}
