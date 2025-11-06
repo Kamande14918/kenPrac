@@ -1,77 +1,72 @@
-import React ,{ useState , useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import ProductCard from "../components/ProductCard";
 import Cart from "./Cart";
 import './Product.css';
 
-const Products = () =>{
+const Products = () => {
     const [products, setProducts] = useState([]);
-    const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const apiUrl = "https://fakestoreapi.com/products";
 
-    useEffect(() =>{
-        const fetchProducts = async () =>{
+    // cart state lifted here so Products renders both Cart and ProductCard
+    const [cart, setCart] = useState([]);
+    const [total, setTotal] = useState(0);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
             try {
                 const res = await fetch(apiUrl);
                 const data = await res.json();
                 setProducts(data);
                 setLoading(false);
-            } catch (err){
+            } catch (err) {
                 setError("Failed to fetch products.");
                 setLoading(false);
                 console.error(err);
             }
-        }
+        };
         fetchProducts();
-    },[apiUrl]);
-    
-     const handleAddToCart = (product) =>{
-        // check if product is already in cart
-        const existing = cart.find(item => item.id === product.id);
-        if(existing){
-            //update quantity
-            setCart(cart.map(item => 
-                item.id === product.id ? {...item, quantity: item.quantity + 1} : item
-            ))
-        } else {
-            setCart([...cart, {cartId: Date.now(),...product, quantity: 1}]);
-        }
-     }
-     if(loading) return <div>Loading products...</div>
+    }, [apiUrl]);
 
-     return (
+    useEffect(() => {
+        const t = cart.reduce((acc, item) => acc + (item.price * item.quantity * 100), 0);
+        setTotal(t);
+    }, [cart]);
+
+    const handleAddToCart = (product) => {
+        setCart(prev => {
+            const existing = prev.find(item => item.id === product.id);
+            if (existing) {
+                return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+            }
+            return [...prev, { cartId: Date.now(), ...product, quantity: 1 }];
+        });
+    };
+
+    const handleRemoveFromCart = (cartId) => {
+        setCart(prev => prev.filter(item => item.cartId !== cartId));
+    };
+
+    const handleUpdateQuantity = (cartId, newQuantity) => {
+        setCart(prev => prev.map(item => item.cartId === cartId ? { ...item, quantity: newQuantity } : item).filter(i => i.quantity > 0));
+    };
+
+    if (loading) return <div>Loading products...</div>;
+
+    return (
         <div className="products-page">
-            {/* Cart */}
-            <Cart cart={cart} />
+            {/* Cart receives cart state and handlers via props */}
+            <Cart cart={cart} total={total} onRemoveFromCart={handleRemoveFromCart} onUpdateQuantity={handleUpdateQuantity} />
             <h1>Products</h1>
             {error && <div className="error">{error}</div>}
             <div className="products-grid">
                 {products.map(product => (
-                    <ProductCard key={product.id} product={product}
-                    onAddToCart={handleAddToCart}
-                    />    
+                    <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
                 ))}
-                {/* Test cart */}
-                <div className="cart">
-                    <h2>Shopping Cart</h2>
-                    {cart.length === 0 ?(
-                        <p>Your cart is empty</p>
-                    ):(
-                        <ul>{
-                            cart.map(item =>
-                                <li key={item.id}>
-                                    {item.cartId} -
-                                    {item.title} - Quantity:
-                                    {item.quantity}
-                                </li>
-                            )}</ul>
-                    )}
-                    <p>Total cart items: {cart.length}</p>
-                </div>
             </div>
         </div>
-     )
-}
+    );
+};
 
 export default Products;
