@@ -1,101 +1,85 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState, useReducer, useCallback } from "react";
 import ProductCard from "../components/ProductCard";
 import Cart from "./Cart";
-import './Product.css';
-import { getUserCart, setUserCart } from '../utils/localStorageHelpers';
+import {getUserCart, setUserCart} from "../utils/localStorageHelpers";
+import { cartReducer, initialCartState, ACTIONS } from "../reducers/cartReducer";
 
-const Products = ({ currentUser }) => {
+function Products({currentUser}){
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [authError, setAuthError] = useState(null);
     const apiUrl = "https://fakestoreapi.com/products";
 
-    // cart state lifted here so Products renders both Cart and ProductCard
-    const [cart, setCart] = useState([]);
-    const [total, setTotal] = useState(0);
+    // use a reducer to manage cart state (pure and testable)
+    const [state, dispatch] = useReducer(cartReducer, initialCartState);
 
     useEffect(() => {
         const fetchProducts = async () => {
-            try {
+            try{
                 const res = await fetch(apiUrl);
                 const data = await res.json();
                 setProducts(data);
                 setLoading(false);
-            } catch (err) {
+            } catch(err){
                 setError("Failed to fetch products.");
                 setLoading(false);
                 console.error(err);
-            }
-        };
+            };
+        }
         fetchProducts();
-    }, [apiUrl]);
-
-    useEffect(() => {
-        const t = cart.reduce((acc, item) => acc + (item.price * item.quantity * 100), 0);
-        setTotal(t);
-    
-        // persist cart for the signed-in user
-    
-    }, [cart]);
+    },[apiUrl])
+    // reducer keeps `state.total` up-to-date. We persist below when state.cart changes.
 
     // load persisted cart when currentUser changes
     useEffect(() => {
-        if (currentUser && currentUser.id) {
-            const saved = getUserCart(currentUser.id) || [];
-            setCart(saved);
+        if (currentUser && currentUser.id){
+                const saved = getUserCart(currentUser.id) || [];
+                dispatch({ type: ACTIONS.SET_CART, payload: saved });
         } else {
-            // clear cart when no user
-            setCart([]);
+                // clear cart when no user 
+                dispatch({ type: ACTIONS.CLEAR_CART });
         }
-    }, [currentUser]);
-
-    const handleAddToCart = (product) => {
-        if (!currentUser) {
-            setAuthError('Please log in to add items to your cart.');
+    },[currentUser]);
+     const handleAddToCart = useCallback((product) => {
+        if(!currentUser){
+            setAuthError("Please log in to add items to your cart.");
             return;
         }
         setAuthError(null);
-        setCart(prev => {
-            const existing = prev.find(item => item.id === product.id);
-            if (existing) {
-                return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+        dispatch({ type: ACTIONS.ADD_TO_CART, payload: product });
+     }, [currentUser]);
+
+     // persist cart to localStorage when cart or currentUSer changes
+        useEffect(() => {
+            if(currentUser && currentUser.id){
+                setUserCart(currentUser.id, state.cart)
             }
-            return [...prev, { cartId: Date.now(), ...product, quantity: 1 }];
-        });
-    };
+        },[state.cart, currentUser]);
 
-    // persist cart to localStorage for the current user
-    useEffect(() => {
-        if (currentUser && currentUser.id) {
-            setUserCart(currentUser.id, cart);
-        }
-    }, [cart, currentUser]);
+    const handleRemoveFromCart = useCallback((cartId) =>{
+        dispatch({ type: ACTIONS.REMOVE_FROM_CART, payload: { cartId } });
+    }, []);
 
-    const handleRemoveFromCart = (cartId) => {
-        setCart(prev => prev.filter(item => item.cartId !== cartId));
-    };
-
-    const handleUpdateQuantity = (cartId, newQuantity) => {
-        setCart(prev => prev.map(item => item.cartId === cartId ? { ...item, quantity: newQuantity } : item).filter(i => i.quantity > 0));
-    };
-
-    if (loading) return <div>Loading products...</div>;
+    const handleUpdateQuantity = useCallback((cartId, newQuantity) =>{
+        dispatch({ type: ACTIONS.UPDATE_QUANTITY, payload: { cartId, quantity: newQuantity } });
+    }, []);
+    if(loading) return <p>Loading products...</p>
 
     return (
         <div className="products-page">
-            {/* Cart receives cart state and handlers via props */}
-            <Cart cart={cart} total={total} onRemoveFromCart={handleRemoveFromCart} onUpdateQuantity={handleUpdateQuantity} />
-            <h1>Products</h1>
-            {error && <div className="error">{error}</div>}
-            {authError && <div className="error">{authError}</div>}
-            <div className="products-grid">
+            <h2>Products</h2>
+            {error && <p style={{color: 'red'}}>{error}</p>}
+            {authError && <p>{authError}</p>}
+            <Cart cart={state.cart} total={state.total * 100} onRemoveFromCart={handleRemoveFromCart} onUpdateQuantity= {handleUpdateQuantity} />
+            <ul className="products-list">
                 {products.map(product => (
-                    <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
+                    <ProductCard key={product.id} product= {product} onAddToCart={handleAddToCart} />
                 ))}
-            </div>
+            </ul>
         </div>
-    );
-};
+    )
+}
+
 
 export default Products;
